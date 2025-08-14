@@ -2,7 +2,7 @@
 
 **Smart screenplay timing tool for filmmakers. Not marketers.**
 
-Drameter estimates the runtime of a screenplay by analyzing its structure, dialogue, action, and pacing cues like `(beat)`. It’s built for screenwriters, directors, and editors who want a scene-by-scene breakdown of timing — not just a generic words-per-minute estimate.
+Drameter estimates the runtime of a screenplay by analyzing its structure, dialogue, action, and pacing cues like `(beat)`. It’s built for screenwriters, directors, and editors who want a scene-by-scene breakdown of timing, and not just a generic words-per-minute estimate.
 
 I built this because I tend to write action-heavy scripts, which complicates time estimation. It's not perfect, but I do believe it's more accurate than the minute-per-page standard. I also found other online tools to be either:  
 1) Annoying, or  
