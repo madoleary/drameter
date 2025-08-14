@@ -2,22 +2,24 @@
 
 **Smart screenplay timing tool for filmmakers. Not marketers.**
 
-Drameter estimates the runtime of a screenplay by analyzing its structure, dialogue, action, and pacing cues like `(beat)`. It’s built for screenwriters, directors, and editors who want a scene-by-scene breakdown of timing, not just a generic words-per-minute estimate.
+Drameter estimates the runtime of a screenplay by analyzing its structure, dialogue, action, and pacing cues like `(beat)`. It’s built for screenwriters, directors, and editors who want a scene-by-scene breakdown of timing — not just a generic words-per-minute estimate.
 
-I built this because I tend to write action-heavy scripts, which complicates time estimation. It's not perfect, but I do believe it's more accurate than the minute-per-page standard. I also found other online tools to be:  
-1) Annoying,  
-2) Geared towards people writing scripts for YouTube videos (no shade).
+I built this because I tend to write action-heavy scripts, which complicates time estimation. It's not perfect, but I do believe it's more accurate than the minute-per-page standard. I also found other online tools to be either:  
+1) Annoying, or  
+2) Geared toward people writing scripts for YouTube videos (no shade).
 
 ---
 
 ## ✨ Features
 
-- 🗂️ Scene-by-scene analysis based on `INT.` / `EXT.` headings  
-- 🗣️ Distinguishes between dialogue and action blocks  
-- ⏱️ Estimates time using customizable words-per-minute  
-- 🎭 Adds time for `(beat)` pauses in dialogue  
+- 🗂️ Scene-by-scene analysis from `INT.` / `EXT.` headings  
+- 🗣️ Differentiates between dialogue and action blocks  
+- ⏱️ Estimates time using customizable words-per-minute (WPM)  
+- 🎭 Adds time for `(beat)` pauses in dialogue (beat-aware timing)  
 - 📄 Accepts screenplays as PDF files  
-- 🧪 Includes sample scripts (a dumb one and a real one) and test runner  
+- 📤 CSV export with optional custom path  
+- 🕒 Auto-names CSV reports using script name + timestamp  
+- 🧪 Includes sample scripts and a test runner  
 
 ---
 
@@ -36,30 +38,52 @@ pip install -r requirements.txt
 
 ## 🚀 Usage
 
+Run the analyzer from the CLI:
+
 ```bash
-python run_test.py examples/sample_script.pdf
+python run_test.py path/to/your_script.pdf
 ```
 
-You’ll get output like:
+Add `--export` to generate a CSV:
+
+```bash
+python run_test.py path/to/your_script.pdf --export
+```
+
+Use `--export-path` to choose a custom filename:
+
+```bash
+python run_test.py path/to/your_script.pdf --export --export-path my_output.csv
+```
+
+By default, CSV filenames include the script name and timestamp:
 
 ```
-Scene 1:
-{'scene_heading': 'INT. LIVING ROOM - NIGHT', 'dialogue_words': 23, 'action_words': 18, 'beats': 2, 'estimated_seconds': 41.3}
+outputs/report_MyScript_20250814_143622.csv
+```
 
-Scene 2:
-{'scene_heading': 'EXT. CITY STREET - LATER', 'dialogue_words': 16, 'action_words': 12, 'beats': 1, 'estimated_seconds': 33.8}
+---
 
-Estimated total runtime: 1.25 minutes
+Sample output:
+
+```
+Scene 1: INT. LIVING ROOM - NIGHT
+  Dialogue: 23w  |  Action: 18w  |  Beats: 2
+  ⏱ Estimated time: 41.3s
+
+🎬 Total scenes analyzed: 6
+⏳ Estimated total runtime: 4m 35s
+📄 CSV report saved to outputs/report_MyScript_20250814_143622.csv
 ```
 
 ---
 
 ## 📁 Project Structure
 
-```
+```text
 drameter/
 ├── drameter.py             # Core script parser and estimator
-├── run_test.py             # Script to test with a sample screenplay
+├── run_test.py             # CLI runner
 ├── requirements.txt
 ├── examples/
 │   └── sample_script.pdf   # A short screenplay to test
@@ -69,27 +93,41 @@ drameter/
 
 ## 🛠 Roadmap (Planned Features)
 
-- [ ] CSV export for timing breakdowns  
-- [ ] CLI tool with options (e.g. WPM, beat duration)
-- [ ] Lightweight web application  
-- [ ] Text-to-speech playback (rhythm check)  
-- [ ] Visual pacing graphs  
-- [ ] Fountain / FDX format support  
+### 🎬 For Filmmakers & ADs
+- [ ] Production-friendly CSV export (scene tags: INT/EXT, location, DAY/NIGHT)
+- [ ] Auto-tagging of scenes (e.g. dialogue-heavy, action, silent)
+- [ ] Support for scene length ranges (e.g. short, medium, long)
+- [ ] Day-out-of-days-like summary (for shoot planning)
+
+### 🧰 Tools & Interfaces
+- [ ] CLI improvements (custom WPM, beat duration via flags)
+- [ ] GUI or lightweight web version (Drag-and-drop PDF → breakdown)
+- [ ] VS Code extension or local previewer
+
+### 🧠 AI / Smart Analysis
+- [ ] Tone/genre-aware pacing heuristics (e.g. drama vs comedy)
+- [ ] Text-to-speech rhythm playback
+- [ ] Pacing graph / emotional curve visualization
+
+### 📄 Format Support
+- [ ] Fountain `.fountain` parser
+- [ ] Final Draft `.fdx` parser
 
 ---
 
 ## 🧠 Why “Drameter”?
 
-Like a thermometer for drama.  It doesn’t just count words. It measures rhythm, pacing, and pause.
+Like a thermometer for drama. It doesn’t just count words. It measures rhythm, pacing, and pause.
 
 ---
 
 ## 🪪 License
 
-MIT — free to use, modify, or integrate in your workflow.
+MIT
 
 ---
 
 ## 👤 Author
 
-Madeline O'Leary
+**Madeline O'Leary**  
+[github.com/madoleary](https://github.com/madoleary)
