@@ -1,5 +1,6 @@
 import re # Python’s regular expression module, used to match scene headings, dialogue blocks, and (beat)s
-import pdfplumber # A library to extract text from PDF files. Keeps screenplay format intact.
+import pdfplumber # A library to extract text from PDF files. Keeps screenplay format intact
+import csv # exporting scene data to CSV
 
 DEFAULT_WPM = 130  # Words per minute (typical for screen dialogue)
 BEAT_DURATION_SECONDS = 1.5  # Default duration per (beat)
@@ -60,14 +61,17 @@ class Scene:
         self.estimated_seconds = base_time + beat_time
 
     # Converts scene data into a dictionary for easy access and printing
-    def to_dict(self):
-        return {
+    def to_dict(self, index=None):
+        scene_dict = {
             "scene_heading": self.heading,
             "dialogue_words": self.dialogue_words,
             "action_words": self.action_words,
             "beats": self.beat_count,
             "estimated_seconds": round(self.estimated_seconds, 1)
         }
+        if index is not None:
+            scene_dict["scene_number"] = index
+        return scene_dict
 
 # Splits the entire screenplay text into individual scenes
 def parse_script(text):
@@ -104,3 +108,12 @@ def extract_text_from_pdf(pdf_path):
             if text:
                 all_text += text + '\n'
     return all_text
+
+def export_to_csv(scenes, output_path="drameter_report.csv"):
+    with open(output_path, mode="w", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=[
+            "scene_number", "scene_heading", "dialogue_words", "action_words", "beats", "estimated_seconds"
+        ])
+        writer.writeheader()
+        for i, scene in enumerate(scenes):
+            writer.writerow(scene.to_dict(index=i + 1))
