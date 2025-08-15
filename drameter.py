@@ -34,8 +34,12 @@ class Scene:
         self.beat_count = 0
         self.estimated_seconds = 0
         self.complexity = COMPLEXITY_TYPES["unknown"]  # Will be determined during analysis
+        self.scene_type = None
+        self.location = None
+        self.time_of_day = None
 
     def analyze(self, wpm=DEFAULT_WPM, beat_duration=BEAT_DURATION_SECONDS):
+        self.parse_heading()
         # Extract dialogue blocks
         dialogue_blocks = re.findall(DIALOGUE_BLOCK_PATTERN, self.content, re.MULTILINE)
         dialogue = " ".join(dialogue_blocks)
@@ -80,12 +84,31 @@ class Scene:
     def to_dict(self):
         return {
             "scene_heading": self.heading,
+            "scene_type": self.scene_type,
+            "location": self.location,
+            "time_of_day": self.time_of_day,
             "dialogue_words": self.dialogue_words,
             "action_words": self.action_words,
             "beats": self.beat_count,
             "estimated_seconds": round(self.estimated_seconds, 1),
             "complexity": self.complexity
         }
+    
+    def parse_heading(self):
+        """
+        Parses the scene heading into type (INT/EXT), location, and time of day.
+        """
+        pattern = r'^(INT|EXT)[.]?\s+(.*?)\s*-\s*(.+)$'
+        match = re.match(pattern, self.heading.strip(), re.IGNORECASE)
+
+        if match:
+            self.scene_type = match.group(1).upper()
+            self.location = match.group(2).strip().upper()
+            self.time_of_day = match.group(3).strip().upper()
+        else:
+            self.scene_type = "UNKNOWN"
+            self.location = self.heading.strip().upper()
+            self.time_of_day = "UNKNOWN"
 
 
 def parse_script(text, wpm=DEFAULT_WPM, beat_duration=BEAT_DURATION_SECONDS):

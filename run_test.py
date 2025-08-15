@@ -30,9 +30,12 @@ def main():
     print(f"\n📄 Loaded {len(scenes)} scenes from {args.pdf_path}\n")
 
     for i, scene in enumerate(scenes):
-        s = scene.to_dict(index=i + 1)
-        print(f"Scene {s['scene_number']}: {s['scene_heading']}")
+        s = scene.to_dict()
+        scene_number = i + 1
+        print(f"Scene {scene_number}: {s['scene_heading']}")
+        print(f"  Type: {s['scene_type']}  |  Location: {s['location']}  |  Time: {s['time_of_day']}")
         print(f"  Dialogue: {s['dialogue_words']}w  |  Action: {s['action_words']}w  |  Beats: {s['beats']}")
+        print(f"  Complexity: {s['complexity']}")
         print(f"  ⏱ Estimated time: {s['estimated_seconds']}s\n")
 
     total_seconds = total_runtime(scenes)
