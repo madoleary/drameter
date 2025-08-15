@@ -19,11 +19,13 @@ def main():
         default="outputs/report.csv",
         help="Custom output path for CSV export (default: outputs/report.csv)"
     )
+    parser.add_argument("--wpm", type=int, default=130, help="Words per minute (default: 130)")
+    parser.add_argument("--beat", type=float, default=1.5, help="Seconds per (beat) pause (default: 1.5)")
 
     args = parser.parse_args()
 
     text = extract_text_from_pdf(args.pdf_path)
-    scenes = parse_script(text)
+    scenes = parse_script(text, wpm=args.wpm, beat_duration=args.beat)
 
     print(f"\n📄 Loaded {len(scenes)} scenes from {args.pdf_path}\n")
 

@@ -21,7 +21,7 @@ class Scene:
         self.beat_count = 0
         self.estimated_seconds = 0
 
-    def analyze(self):
+    def analyze(self, wpm=DEFAULT_WPM, beat_duration=BEAT_DURATION_SECONDS):
         # Find dialogue blocks (lines after all-caps names)
         dialogue_blocks = re.findall(DIALOGUE_BLOCK_PATTERN, self.content, re.MULTILINE)
         dialogue = " ".join(dialogue_blocks)
@@ -35,13 +35,13 @@ class Scene:
 
         # Count (beat) pauses
         self.beat_count = len(re.findall(r'\(beat\)', dialogue, flags=re.IGNORECASE))
-        beat_time = self.beat_count * BEAT_DURATION_SECONDS
+        beat_time = self.beat_count * beat_duration
 
         # Adjust pacing based on tone
         total_words = self.dialogue_words + self.action_words
         tone_multiplier = 0.8 if self.dialogue_words >= self.action_words else 1.2
 
-        base_time = (total_words / DEFAULT_WPM) * 60 * tone_multiplier
+        base_time = (total_words / wpm) * 60 * tone_multiplier
         self.estimated_seconds = base_time + beat_time
 
     def to_dict(self, index=None):
@@ -57,7 +57,7 @@ class Scene:
         return scene_dict
 
 
-def parse_script(text):
+def parse_script(text, wpm=DEFAULT_WPM, beat_duration=BEAT_DURATION_SECONDS):
     # Split script into scenes at INT./EXT. headings
     scene_chunks = re.split(r'\n(?=INT\.|EXT\.)', text)
     scenes = []
@@ -68,7 +68,7 @@ def parse_script(text):
         if len(lines) == 2:
             heading, content = lines
             scene = Scene(heading, content)
-            scene.analyze()
+            scene.analyze(wpm=wpm, beat_duration=beat_duration)
             scenes.append(scene)
 
     return scenes
