@@ -8,6 +8,19 @@ BEAT_DURATION_SECONDS = 1.5  # Default duration per (beat)
 # Reused regex pattern for dialogue blocks
 DIALOGUE_BLOCK_PATTERN = r'^[A-Z0-9 ]{3,}(?:\n.+)+'
 
+# Complexity thresholds
+DIALOGUE_DOMINANT_THRESHOLD = 0.6
+ACTION_DOMINANT_THRESHOLD = 0.4
+LONG_SCENE_WORDS = 300
+
+COMPLEXITY_TYPES = {
+    "dialogue": "dialogue-heavy",
+    "action": "action-heavy",
+    "balanced": "balanced",
+    "empty": "empty",
+    "unknown": "unknown"
+}
+
 class Scene:
     """
     Represents a single screenplay scene.
@@ -20,41 +33,59 @@ class Scene:
         self.action_words = 0
         self.beat_count = 0
         self.estimated_seconds = 0
+        self.complexity = COMPLEXITY_TYPES["unknown"]  # Will be determined during analysis
 
     def analyze(self, wpm=DEFAULT_WPM, beat_duration=BEAT_DURATION_SECONDS):
-        # Find dialogue blocks (lines after all-caps names)
+        # Extract dialogue blocks
         dialogue_blocks = re.findall(DIALOGUE_BLOCK_PATTERN, self.content, re.MULTILINE)
         dialogue = " ".join(dialogue_blocks)
 
-        # Action = everything not part of dialogue
+        # Everything else is action
         action = re.sub(DIALOGUE_BLOCK_PATTERN, '', self.content, flags=re.MULTILINE)
 
-        # Count words
+        # Word counts
         self.dialogue_words = len(dialogue.split())
         self.action_words = len(action.split())
+        total_words = self.dialogue_words + self.action_words
 
-        # Count (beat) pauses
+        # Early exit for empty scenes
+        if total_words == 0:
+            self.complexity = COMPLEXITY_TYPES["empty"]
+            self.estimated_seconds = 0
+            return
+
+        # Determine pacing bias
+        ratio = self.dialogue_words / total_words
+        if ratio >= DIALOGUE_DOMINANT_THRESHOLD:
+            base_complexity = COMPLEXITY_TYPES["dialogue"]
+        elif ratio <= ACTION_DOMINANT_THRESHOLD:
+            base_complexity = COMPLEXITY_TYPES["action"]
+        else:
+            base_complexity = COMPLEXITY_TYPES["balanced"]
+
+        # Optional tag for long scenes
+        is_long = total_words > LONG_SCENE_WORDS
+        self.complexity = f"{base_complexity} (long)" if is_long else base_complexity
+
+        # Beat timing
         self.beat_count = len(re.findall(r'\(beat\)', dialogue, flags=re.IGNORECASE))
         beat_time = self.beat_count * beat_duration
 
-        # Adjust pacing based on tone
-        total_words = self.dialogue_words + self.action_words
+        # Adjust pacing multiplier
         tone_multiplier = 0.8 if self.dialogue_words >= self.action_words else 1.2
-
         base_time = (total_words / wpm) * 60 * tone_multiplier
+
         self.estimated_seconds = base_time + beat_time
 
-    def to_dict(self, index=None):
-        scene_dict = {
+    def to_dict(self):
+        return {
             "scene_heading": self.heading,
             "dialogue_words": self.dialogue_words,
             "action_words": self.action_words,
             "beats": self.beat_count,
-            "estimated_seconds": round(self.estimated_seconds, 1)
+            "estimated_seconds": round(self.estimated_seconds, 1),
+            "complexity": self.complexity
         }
-        if index is not None:
-            scene_dict["scene_number"] = index
-        return scene_dict
 
 
 def parse_script(text, wpm=DEFAULT_WPM, beat_duration=BEAT_DURATION_SECONDS):
@@ -89,10 +120,18 @@ def extract_text_from_pdf(pdf_path):
 
 
 def export_to_csv(scenes, output_path="drameter_report.csv"):
+    if not scenes:
+        print("⚠️ No scenes to export.")
+        return
+
+    # Use keys from the first scene as base fieldnames
+    first_row = scenes[0].to_dict()
+    fieldnames = ["scene_number"] + list(first_row.keys())
+
     with open(output_path, mode="w", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=[
-            "scene_number", "scene_heading", "dialogue_words", "action_words", "beats", "estimated_seconds"
-        ])
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
         writer.writeheader()
+
         for i, scene in enumerate(scenes):
-            writer.writerow(scene.to_dict(index=i + 1))
+            row = {"scene_number": i + 1, **scene.to_dict()}
+            writer.writerow(row)
