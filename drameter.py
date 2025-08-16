@@ -97,18 +97,42 @@ class Scene:
     def parse_heading(self):
         """
         Parses the scene heading into type (INT/EXT), location, and time of day.
+        Handles edge cases: dash variants, spacing issues, missing time, INT/EXT hybrids.
         """
-        pattern = r'^(INT|EXT)[.]?\s+(.*?)\s*-\s*(.+)$'
-        match = re.match(pattern, self.heading.strip(), re.IGNORECASE)
+        raw_heading = self.heading.strip().upper()
 
-        if match:
-            self.scene_type = match.group(1).upper()
-            self.location = match.group(2).strip().upper()
-            self.time_of_day = match.group(3).strip().upper()
+        # Normalize punctuation
+        normalized = re.sub(r'[–—]|--', '-', raw_heading)
+        normalized = re.sub(r'\s*-\s*', ' - ', normalized)
+        normalized = re.sub(r'\s+', ' ', normalized).strip()
+
+        # Handle INT/EXT hybrids
+        hybrid_match = re.match(r'^(INT\s*\.?\s*/\s*EXT\s*\.?|EXT\s*\.?\s*/\s*INT\s*\.?)\s+(.*)', normalized)
+        if hybrid_match:
+            self.scene_type = "INT/EXT"
+            remainder = hybrid_match.group(2)
         else:
-            self.scene_type = "UNKNOWN"
-            self.location = self.heading.strip().upper()
-            self.time_of_day = "UNKNOWN"
+            std_match = re.match(r'^(INT|EXT)[.]?\s*(.*)', normalized)
+            if std_match:
+                self.scene_type = std_match.group(1)
+                remainder = std_match.group(2)
+            else:
+                self.scene_type = "UNKNOWN"
+                self.location = raw_heading
+                self.time_of_day = "UNKNOWN"
+                return
+
+        # Split into location and time
+        if ' - ' in remainder:
+            parts = remainder.rsplit(' - ', 1)
+            location = parts[0].strip().strip('-').strip()
+            time_of_day = parts[1].strip() if parts[1].strip() else "UNKNOWN"
+        else:
+            location = remainder.strip().strip('-').strip()
+            time_of_day = "UNKNOWN"
+
+        self.location = re.sub(r'\s+', ' ', location)
+        self.time_of_day = re.sub(r'\s+', ' ', time_of_day)
 
 
 def parse_script(text, wpm=DEFAULT_WPM, beat_duration=BEAT_DURATION_SECONDS):
