@@ -27,6 +27,9 @@ def main():
     text = extract_text_from_pdf(args.pdf_path)
     scenes = parse_script(text, wpm=args.wpm, beat_duration=args.beat)
 
+    # Track scenes missing time of day
+    missing_time_scenes = [s for s in scenes if getattr(s, "_has_missing_time_of_day", False)]
+
     print(f"\n📄 Loaded {len(scenes)} scenes from {args.pdf_path}\n")
 
     for i, scene in enumerate(scenes):
@@ -44,6 +47,12 @@ def main():
 
     print(f"🎬 Total scenes analyzed: {len(scenes)}")
     print(f"⏳ Estimated total runtime: {minutes}m {seconds}s\n")
+
+    if missing_time_scenes:
+        print("⚠️ Warning: These EXT. scenes are missing a time of day:")
+        for scene in missing_time_scenes:
+            print(f"  • {scene.heading}")
+        print()
 
     if args.export:
         export_path = args.export_path

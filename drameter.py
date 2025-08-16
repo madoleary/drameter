@@ -41,6 +41,14 @@ class Scene:
     def analyze(self, wpm=DEFAULT_WPM, beat_duration=BEAT_DURATION_SECONDS):
         self.parse_heading()
         # Extract dialogue blocks
+
+        # Tag EXT scenes missing time of day
+        if self.scene_type == "EXT" and self.time_of_day == "UNKNOWN":
+            self.time_of_day = "MISSING"
+            self._has_missing_time_of_day = True
+        else:
+            self._has_missing_time_of_day = False
+        
         dialogue_blocks = re.findall(DIALOGUE_BLOCK_PATTERN, self.content, re.MULTILINE)
         dialogue = " ".join(dialogue_blocks)
 
@@ -87,6 +95,7 @@ class Scene:
             "scene_type": self.scene_type,
             "location": self.location,
             "time_of_day": self.time_of_day,
+            "time_of_day_note": "MISSING" if self._has_missing_time_of_day else "",
             "dialogue_words": self.dialogue_words,
             "action_words": self.action_words,
             "beats": self.beat_count,
