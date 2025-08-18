@@ -94,13 +94,13 @@ drameter/
 ## 🛠 Roadmap (Planned Features)
 
 ### 🎬 For Filmmakers & ADs
-- [ ] Production-friendly CSV export (scene tags: INT/EXT, location, DAY/NIGHT)
+- [x] Production-friendly CSV export (scene tags: INT/EXT, location, DAY/NIGHT)
 - [ ] Auto-tagging of scenes (e.g. dialogue-heavy, action, silent)
 - [ ] Support for scene length ranges (e.g. short, medium, long)
 - [ ] Day-out-of-days-like summary (for shoot planning)
 
 ### 🧰 Tools & Interfaces
-- [ ] CLI improvements (custom WPM, beat duration via flags)
+- [x] CLI improvements (custom WPM, beat duration via flags)
 - [ ] GUI or lightweight web version (Drag-and-drop PDF → breakdown)
 - [ ] VS Code extension or local previewer
 
@@ -208,6 +208,8 @@ Drameter gives early warning signs.
 🗂 Assistant Directors, to aid in pre-scheduling and stripboarding  
 🎞 Editors, to forecast cuts and dead zones  
 📈 Producers, to predict total runtime beyond page count
+
+---
 
 ## 🧠 Why “Drameter”?
 
