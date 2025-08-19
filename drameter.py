@@ -21,6 +21,18 @@ COMPLEXITY_TYPES = {
     "unknown": "unknown"
 }
 
+TRANSITIONS = {
+    r'\bDISSOLVE\s*[-:]?\s*TO\b': "DISSOLVE TO",
+    r'\bFADE\s*[-:]?\s*TO\b': "FADE TO",
+    r'\bSMASH\s*[-:]?\s*TO\b': "SMASH CUT",
+    r'\bMATCH\s*CUT\s*[-:]?\s*TO\b': "MATCH CUT",
+    r'\bWIPE\s*[-:]?\s*TO\b': "WIPE TO",
+    r'\bJUMP\s*CUT\s*[-:]?\s*TO\b': "JUMP CUT",
+    r'\bQUICK\s+CUTS\b': "QUICK CUTS",
+    r'\bTIME\s+LAPSES\b': "TIME LAPSES",
+    r'\bINTERCUT\s+WITH\b': "INTERCUT WITH",
+}
+
 class Scene:
     """
     Represents a single screenplay scene.
@@ -38,11 +50,15 @@ class Scene:
         self.location = None
         self.time_of_day = None
         self.contains_montage = False
-        self.notes = ""  # Placeholder for any additional notes
+        self.notes = [] # Placeholder for any additional notes
+        self.transition_cues = []  # Will hold labels like ["DISSOLVE TO", "INTERCUT WITH"]
 
     def analyze(self, wpm=DEFAULT_WPM, beat_duration=BEAT_DURATION_SECONDS):
         self.parse_heading()
+        # Clear any previous notes
+        self.notes = []
         self.contains_montage = self.detect_montage()
+        self.transition_cues = self._detect_transitions()
 
         # Tag EXT scenes missing time of day
         if self.scene_type == "EXT" and self.time_of_day == "UNKNOWN":
@@ -63,13 +79,15 @@ class Scene:
         self.action_words = len(action.split())
         total_words = self.dialogue_words + self.action_words
 
-        # If montage detected, adjust notes
+        # Add montage info as a note
         if self.contains_montage and self.dialogue_words > 0:
-            self.notes = "montage + dialogue"
+            self.notes.append("montage + dialogue")
         elif self.contains_montage:
-            self.notes = "montage only"
-        else:
-            self.notes = ""
+            self.notes.append("montage only")
+
+        # Add transition info as a note
+        if self.transition_cues:
+            self.notes.append(f"transition: {', '.join(self.transition_cues)}")
 
         # Early exit for empty scenes
         if total_words == 0:
@@ -112,7 +130,8 @@ class Scene:
             "estimated_seconds": round(self.estimated_seconds, 1),
             "complexity": self.complexity,
             "contains_montage": self.contains_montage,
-            "notes": self.notes,
+            "transitions": ", ".join(self.transition_cues) if self.transition_cues else "",
+            "notes": "; ".join(self.notes) if self.notes else "",
         }
     
     def parse_heading(self):
@@ -177,6 +196,16 @@ class Scene:
                 return True
 
         return False
+    
+    def _detect_transitions(self):
+        matches = set()
+        content_upper = self.content.upper()
+
+        for pattern, label in TRANSITIONS.items():
+            if re.search(pattern, content_upper):
+                matches.add(label)
+
+        return sorted(matches)
 
 
 def parse_script(text, wpm=DEFAULT_WPM, beat_duration=BEAT_DURATION_SECONDS):

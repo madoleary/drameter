@@ -42,6 +42,10 @@ def main():
         print(f"  ⏱ Estimated time: {s['estimated_seconds']}s\n")
         if s.get("contains_montage"):
             print("  🎞️ Detected as montage scene")
+        if s.get("transitions"):
+            print(f"  🔀 Transitions: {s['transitions']}")
+        if s.get("notes"):
+            print(f"  📝 Notes: {s['notes']}")
         print()
 
     total_seconds = total_runtime(scenes)
