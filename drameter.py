@@ -37,12 +37,12 @@ class Scene:
         self.scene_type = None
         self.location = None
         self.time_of_day = None
-        self.contains_montage = False 
+        self.contains_montage = False
+        self.notes = ""  # Placeholder for any additional notes
 
     def analyze(self, wpm=DEFAULT_WPM, beat_duration=BEAT_DURATION_SECONDS):
         self.parse_heading()
         self.contains_montage = self.detect_montage()
-        # Extract dialogue blocks
 
         # Tag EXT scenes missing time of day
         if self.scene_type == "EXT" and self.time_of_day == "UNKNOWN":
@@ -51,6 +51,7 @@ class Scene:
         else:
             self._has_missing_time_of_day = False
         
+        # Extract dialogue blocks
         dialogue_blocks = re.findall(DIALOGUE_BLOCK_PATTERN, self.content, re.MULTILINE)
         dialogue = " ".join(dialogue_blocks)
 
@@ -61,6 +62,14 @@ class Scene:
         self.dialogue_words = len(dialogue.split())
         self.action_words = len(action.split())
         total_words = self.dialogue_words + self.action_words
+
+        # If montage detected, adjust notes
+        if self.contains_montage and self.dialogue_words > 0:
+            self.notes = "montage + dialogue"
+        elif self.contains_montage:
+            self.notes = "montage only"
+        else:
+            self.notes = ""
 
         # Early exit for empty scenes
         if total_words == 0:
@@ -103,7 +112,7 @@ class Scene:
             "estimated_seconds": round(self.estimated_seconds, 1),
             "complexity": self.complexity,
             "contains_montage": self.contains_montage,
-            "notes": ""  # Placeholder for any additional notes
+            "notes": self.notes,
         }
     
     def parse_heading(self):
