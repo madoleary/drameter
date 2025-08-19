@@ -37,9 +37,11 @@ class Scene:
         self.scene_type = None
         self.location = None
         self.time_of_day = None
+        self.contains_montage = False 
 
     def analyze(self, wpm=DEFAULT_WPM, beat_duration=BEAT_DURATION_SECONDS):
         self.parse_heading()
+        self.contains_montage = self.detect_montage()
         # Extract dialogue blocks
 
         # Tag EXT scenes missing time of day
@@ -95,12 +97,13 @@ class Scene:
             "scene_type": self.scene_type,
             "location": self.location,
             "time_of_day": self.time_of_day,
-            "time_of_day_note": "MISSING" if self._has_missing_time_of_day else "",
             "dialogue_words": self.dialogue_words,
             "action_words": self.action_words,
             "beats": self.beat_count,
             "estimated_seconds": round(self.estimated_seconds, 1),
-            "complexity": self.complexity
+            "complexity": self.complexity,
+            "contains_montage": self.contains_montage,
+            "notes": ""  # Placeholder for any additional notes
         }
     
     def parse_heading(self):
@@ -143,17 +146,53 @@ class Scene:
         self.location = re.sub(r'\s+', ' ', location)
         self.time_of_day = re.sub(r'\s+', ' ', time_of_day)
 
+    def detect_montage(self):
+        montage_indicators = [
+            r'\bMONTAGE\b',
+            r'\bSERIES OF SHOTS\b',
+            r'\bBEGIN MONTAGE\b',
+            r'\bEND MONTAGE\b',
+            r'\bSEQUENCE\b',
+            r'\bA FLURRY OF IMAGES\b',
+            r'\bIMAGES OF\b',
+            r'\bQUICK CUTS\b',
+            r'\bTIME LAPSES\b',
+            r'\bINTERCUT WITH\b',
+        ]
+
+        heading = self.heading.upper()
+        content = self.content.upper()
+
+        for pattern in montage_indicators:
+            if re.search(pattern, heading) or re.search(pattern, content):
+                return True
+
+        return False
+
 
 def parse_script(text, wpm=DEFAULT_WPM, beat_duration=BEAT_DURATION_SECONDS):
-    # Split script into scenes at INT./EXT. headings
-    scene_chunks = re.split(r'\n(?=INT\.|EXT\.)', text)
+    """
+    Splits the script into scenes and returns a list of Scene objects.
+    Handles scene numbers, hybrid headings, and inconsistent spacing.
+    Skips any title page or front matter before the first INT./EXT. heading.
+    """
+    # Skip everything before the first scene heading
+    match = re.search(r'(?=INT\.|EXT\.|INT/EXT|EXT/INT)', text, flags=re.IGNORECASE)
+    if not match:
+        print("⚠️ No scene headings found.")
+        return []
+
+    script_body = text[match.start():]  # Cut off anything before first real scene
+
+    # Split into scene chunks (tolerating scene numbers)
+    scene_chunks = re.split(r'\n?(?:\d+\s+)?(?=INT\.|EXT\.|INT/EXT|EXT/INT)', script_body, flags=re.IGNORECASE)
     scenes = []
 
     for chunk in scene_chunks:
-        # Splits each scene into its heading and content (everything else in the scene)
         lines = chunk.strip().split('\n', 1)
         if len(lines) == 2:
-            heading, content = lines
+            heading = re.sub(r'^\d+\s+', '', lines[0].strip())  # Remove scene number
+            content = lines[1].strip()
             scene = Scene(heading, content)
             scene.analyze(wpm=wpm, beat_duration=beat_duration)
             scenes.append(scene)

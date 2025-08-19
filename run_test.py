@@ -40,6 +40,9 @@ def main():
         print(f"  Dialogue: {s['dialogue_words']}w  |  Action: {s['action_words']}w  |  Beats: {s['beats']}")
         print(f"  Complexity: {s['complexity']}")
         print(f"  ⏱ Estimated time: {s['estimated_seconds']}s\n")
+        if s.get("contains_montage"):
+            print("  🎞️ Detected as montage scene")
+        print()
 
     total_seconds = total_runtime(scenes)
     minutes = int(total_seconds // 60)
