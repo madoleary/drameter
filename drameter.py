@@ -89,19 +89,15 @@ class Scene:
         # Label montages with no dialogue as montage only
         if self.contains_montage and self.dialogue_words == 0:
             self.scene_type_note = "montage"
-            self.notes.append("montage only")
         # Label montage + dialogue scenes as hybrid
         elif self.contains_montage and self.dialogue_words > 0:
             self.scene_type_note = "hybrid"
-            self.notes.append("montage + dialogue")
         # Label no-dialogue scenes
         elif self.dialogue_words == 0:
             self.scene_type_note = "no-dialogue"
-            self.notes.append("no dialogue")
         # Label low-dialogue scenes
         elif self.dialogue_words < silent_dialogue_threshold and self.action_words >= silent_action_threshold:
             self.scene_type_note = "low-dialogue"
-            self.notes.append("low dialogue")
         else:
             self.scene_type_note = ""
 
