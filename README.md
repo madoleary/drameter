@@ -16,6 +16,8 @@ I built this because I tend to write action-heavy scripts, which complicates tim
 - 🗣️ Differentiates between dialogue and action blocks  
 - ⏱️ Estimates time using customizable words-per-minute (WPM)  
 - 🎭 Adds time for `(beat)` pauses in dialogue (beat-aware timing)  
+- 🎞️ Detects montage sequences and transition cues  
+- 📝 Tags scenes with notes like `montage + dialogue`, missing time of day, and detected transitions  
 - 📄 Accepts screenplays as PDF files  
 - 📤 CSV export with optional custom path  
 - 🕒 Auto-names CSV reports using script name + timestamp  
@@ -95,7 +97,9 @@ drameter/
 
 ### 🎬 For Filmmakers & ADs
 - [x] Production-friendly CSV export (scene tags: INT/EXT, location, DAY/NIGHT)
-- [ ] Auto-tagging of scenes (e.g. dialogue-heavy, action, silent)
+- [x] Auto-tagging of scenes (e.g. dialogue-heavy, action, silent)
+- [x] Detection of montage blocks and pacing caveats
+- [x] Transition cue logging (e.g. DISSOLVE TO, QUICK CUTS)
 - [ ] Support for scene length ranges (e.g. short, medium, long)
 - [ ] Day-out-of-days-like summary (for shoot planning)
 
@@ -187,7 +191,7 @@ Scene 14 may be one page but run 90 seconds because of long beats and dense acti
 
 ⚠️ **3. Flags Complex Scenes Early**
 
-Scenes with lots of action, long beats, or high word counts per page may require more shoot time, even if they’re short on paper.
+Scenes with lots of action, long beats, montage sequences, or visual transitions may require more shoot time, even if they’re short on paper.
 
 Drameter gives early warning signs.
 
