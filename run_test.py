@@ -21,11 +21,29 @@ def main():
     )
     parser.add_argument("--wpm", type=int, default=130, help="Words per minute (default: 130)")
     parser.add_argument("--beat", type=float, default=1.5, help="Seconds per (beat) pause (default: 1.5)")
+    parser.add_argument(
+    "--silent-dialogue-threshold",
+    type=int,
+    default=10,
+    help="Max dialogue words to consider a scene silent (default: 10)"
+    )
+    parser.add_argument(
+        "--silent-action-threshold",
+        type=int,
+        default=100,
+        help="Min action words to consider a scene silent (default: 100)"
+    )
 
     args = parser.parse_args()
 
     text = extract_text_from_pdf(args.pdf_path)
-    scenes = parse_script(text, wpm=args.wpm, beat_duration=args.beat)
+    scenes = parse_script(
+        text,
+        wpm=args.wpm,
+        beat_duration=args.beat,
+        silent_dialogue_threshold=args.silent_dialogue_threshold,
+        silent_action_threshold=args.silent_action_threshold
+    )
 
     # Track scenes missing time of day
     missing_time_scenes = [s for s in scenes if getattr(s, "_has_missing_time_of_day", False)]
@@ -39,7 +57,9 @@ def main():
         print(f"  Type: {s['scene_type']}  |  Location: {s['location']}  |  Time: {s['time_of_day']}")
         print(f"  Dialogue: {s['dialogue_words']}w  |  Action: {s['action_words']}w  |  Beats: {s['beats']}")
         print(f"  Complexity: {s['complexity']}")
-        print(f"  ⏱ Estimated time: {s['estimated_seconds']}s\n")
+        if s.get("scene_type_note"):
+            print(f"  Scene type tag: {s['scene_type_note']}")
+            print(f"  ⏱ Estimated time: {s['estimated_seconds']}s\n")
         if s.get("contains_montage"):
             print("  🎞️ Detected as montage scene")
         if s.get("transitions"):

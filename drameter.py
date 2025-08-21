@@ -5,8 +5,11 @@ import csv
 DEFAULT_WPM = 130  # Words per minute (typical for screen dialogue)
 BEAT_DURATION_SECONDS = 1.5  # Default duration per (beat)
 
+DEFAULT_SILENT_DIALOGUE_THRESHOLD = 10
+DEFAULT_SILENT_ACTION_THRESHOLD = 100
+
 # Reused regex pattern for dialogue blocks
-DIALOGUE_BLOCK_PATTERN = r'^[A-Z0-9 ]{3,}(?:\n.+)+'
+DIALOGUE_BLOCK_PATTERN = r'^[A-Z0-9 ]{2,}(?:\n(?:\s{2,}|\t).+)+'
 
 # Complexity thresholds
 DIALOGUE_DOMINANT_THRESHOLD = 0.6
@@ -52,11 +55,17 @@ class Scene:
         self.contains_montage = False
         self.notes = [] # Placeholder for any additional notes
         self.transition_cues = []  # Will hold labels like ["DISSOLVE TO", "INTERCUT WITH"]
+        self.scene_type_note = ""
 
-    def analyze(self, wpm=DEFAULT_WPM, beat_duration=BEAT_DURATION_SECONDS):
+    def analyze(
+        self,
+        wpm=DEFAULT_WPM,
+        beat_duration=BEAT_DURATION_SECONDS,
+        silent_dialogue_threshold=DEFAULT_SILENT_DIALOGUE_THRESHOLD,
+        silent_action_threshold=DEFAULT_SILENT_ACTION_THRESHOLD
+    ):
         self.parse_heading()
-        # Clear any previous notes
-        self.notes = []
+        self.notes = []  # Clear previous notes
         self.contains_montage = self.detect_montage()
         self.transition_cues = self._detect_transitions()
 
@@ -66,12 +75,10 @@ class Scene:
             self._has_missing_time_of_day = True
         else:
             self._has_missing_time_of_day = False
-        
-        # Extract dialogue blocks
+
+        # Extract dialogue and action
         dialogue_blocks = re.findall(DIALOGUE_BLOCK_PATTERN, self.content, re.MULTILINE)
         dialogue = " ".join(dialogue_blocks)
-
-        # Everything else is action
         action = re.sub(DIALOGUE_BLOCK_PATTERN, '', self.content, flags=re.MULTILINE)
 
         # Word counts
@@ -79,23 +86,32 @@ class Scene:
         self.action_words = len(action.split())
         total_words = self.dialogue_words + self.action_words
 
-        # Add montage info as a note
-        if self.contains_montage and self.dialogue_words > 0:
-            self.notes.append("montage + dialogue")
-        elif self.contains_montage:
+        # Label montages with no dialogue as montage only
+        if self.contains_montage and self.dialogue_words == 0:
+            self.scene_type_note = "montage"
             self.notes.append("montage only")
+        # Label montage + dialogue scenes as hybrid
+        elif self.contains_montage and self.dialogue_words > 0:
+            self.scene_type_note = "hybrid"
+            self.notes.append("montage + dialogue")
+        # Label no-dialogue scenes
+        elif self.dialogue_words == 0:
+            self.scene_type_note = "no-dialogue"
+            self.notes.append("no dialogue")
+        # Label low-dialogue scenes
+        elif self.dialogue_words < silent_dialogue_threshold and self.action_words >= silent_action_threshold:
+            self.scene_type_note = "low-dialogue"
+            self.notes.append("low dialogue")
+        else:
+            self.scene_type_note = ""
 
-        # Add transition info as a note
-        if self.transition_cues:
-            self.notes.append(f"transition: {', '.join(self.transition_cues)}")
-
-        # Early exit for empty scenes
+        # Handle empty scenes
         if total_words == 0:
             self.complexity = COMPLEXITY_TYPES["empty"]
             self.estimated_seconds = 0
             return
 
-        # Determine pacing bias
+        # Determine complexity
         ratio = self.dialogue_words / total_words
         if ratio >= DIALOGUE_DOMINANT_THRESHOLD:
             base_complexity = COMPLEXITY_TYPES["dialogue"]
@@ -104,7 +120,6 @@ class Scene:
         else:
             base_complexity = COMPLEXITY_TYPES["balanced"]
 
-        # Optional tag for long scenes
         is_long = total_words > LONG_SCENE_WORDS
         self.complexity = f"{base_complexity} (long)" if is_long else base_complexity
 
@@ -112,10 +127,9 @@ class Scene:
         self.beat_count = len(re.findall(r'\(beat\)', dialogue, flags=re.IGNORECASE))
         beat_time = self.beat_count * beat_duration
 
-        # Adjust pacing multiplier
+        # Runtime estimate
         tone_multiplier = 0.8 if self.dialogue_words >= self.action_words else 1.2
         base_time = (total_words / wpm) * 60 * tone_multiplier
-
         self.estimated_seconds = base_time + beat_time
 
     def to_dict(self):
@@ -131,6 +145,7 @@ class Scene:
             "complexity": self.complexity,
             "contains_montage": self.contains_montage,
             "transitions": ", ".join(self.transition_cues) if self.transition_cues else "",
+            "scene_type_note": self.scene_type_note,
             "notes": "; ".join(self.notes) if self.notes else "",
         }
     
@@ -162,11 +177,17 @@ class Scene:
                 self.time_of_day = "UNKNOWN"
                 return
 
-        # Split into location and time
+        # Validate known time of day values
+        KNOWN_TIMES = {
+            "DAY", "NIGHT", "EVENING", "MORNING", "LATER", "DAWN", "DUSK",
+            "CONTINUOUS", "SAME", "SUNSET", "SUNRISE", "AFTERNOON", "MAGIC HOUR"
+        }
+
         if ' - ' in remainder:
             parts = remainder.rsplit(' - ', 1)
             location = parts[0].strip().strip('-').strip()
-            time_of_day = parts[1].strip() if parts[1].strip() else "UNKNOWN"
+            potential_time = parts[1].strip().upper()
+            time_of_day = potential_time if potential_time in KNOWN_TIMES else "UNKNOWN"
         else:
             location = remainder.strip().strip('-').strip()
             time_of_day = "UNKNOWN"
@@ -208,7 +229,13 @@ class Scene:
         return sorted(matches)
 
 
-def parse_script(text, wpm=DEFAULT_WPM, beat_duration=BEAT_DURATION_SECONDS):
+def parse_script(
+    text,
+    wpm=DEFAULT_WPM,
+    beat_duration=BEAT_DURATION_SECONDS,
+    silent_dialogue_threshold=DEFAULT_SILENT_DIALOGUE_THRESHOLD,
+    silent_action_threshold=DEFAULT_SILENT_ACTION_THRESHOLD
+):
     """
     Splits the script into scenes and returns a list of Scene objects.
     Handles scene numbers, hybrid headings, and inconsistent spacing.
@@ -232,7 +259,12 @@ def parse_script(text, wpm=DEFAULT_WPM, beat_duration=BEAT_DURATION_SECONDS):
             heading = re.sub(r'^\d+\s+', '', lines[0].strip())  # Remove scene number
             content = lines[1].strip()
             scene = Scene(heading, content)
-            scene.analyze(wpm=wpm, beat_duration=beat_duration)
+            scene.analyze(
+                wpm=wpm,
+                beat_duration=beat_duration,
+                silent_dialogue_threshold=silent_dialogue_threshold,
+                silent_action_threshold=silent_action_threshold
+            )
             scenes.append(scene)
 
     return scenes
